@@ -34,7 +34,7 @@ export class BotService implements OnModuleInit {
       this.proposal();
       this.commands();
       this.sendPhoto();
-      schedule('*/10 * * * * *', async () => {
+      schedule('*/35 * * * * *', async () => {
         await this.sendNotification();
       });
       await this.todayTimes();
@@ -48,7 +48,7 @@ export class BotService implements OnModuleInit {
   }
   async setupBot() {
     this.bot.start(async (ctx) => {
-      const user = ctx.chat;
+      const user = await ctx.chat;
 
       if (!user) return;
 
@@ -56,18 +56,18 @@ export class BotService implements OnModuleInit {
         const foundUser = await this.usersService.getUserByTgId(user.id);
 
         if (foundUser) {
-          ctx.reply(
+          await ctx.reply(
             `Assalomu alaykum, ${foundUser.first_name || foundUser.title}!`,
           );
-          this.mainMenu(ctx);
+          await this.mainMenu(ctx);
           return;
         }
         const createdUser = await this.usersService.createUser(user);
 
-        ctx.reply(
+        await ctx.reply(
           `Assalomu alaykum, ${createdUser?.first_name || createdUser?.title}!`,
         );
-        ctx.reply(
+        await ctx.reply(
           '📍 Hududingizni tanlang:',
           Markup.keyboard([
             ['Angren', 'Andijon'],
@@ -96,7 +96,8 @@ export class BotService implements OnModuleInit {
             ['Dehqonobod', 'Koson'],
             ['Muborak', 'Shahrisabz'],
             ["G'uzor", 'Urganch'],
-            ['Toshkent shahri']['Orqaga'],
+            ['Toshkent shahri'],
+            ['🏠 Asosiy menyu'],
           ]).resize(),
         );
       } catch (error) {
@@ -263,11 +264,11 @@ export class BotService implements OnModuleInit {
       );
     });
   }
-  sendMessage(id: any, msg: any) {
+  async sendMessage(id: any, msg: any) {
     try {
-      this.bot.telegram.sendMessage(id, msg);
+      await this.bot.telegram.sendMessage(id, msg);
     } catch (error) {
-      console.log(error.message);
+      console.log(`${id} botni bloklagan - ${error.message}`);
     }
   }
   async sendNotification() {
