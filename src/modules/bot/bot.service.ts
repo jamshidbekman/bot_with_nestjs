@@ -29,6 +29,7 @@ export class BotService {
     this.commands();
     this.sendPhoto();
     await this.sendNotification();
+    await this.todayTimes();
     await this.bot.launch({ dropPendingUpdates: true });
   }
   async setupBot() {
@@ -37,16 +38,16 @@ export class BotService {
 
       if (!user) return;
 
-      const foundUser = await this.usersService.getUserByTgId(user.id);
-
-      if (foundUser) {
-        ctx.reply(
-          `Assalomu alaykum, ${foundUser.first_name || foundUser.title}!`,
-        );
-        this.mainMenu(ctx);
-        return;
-      }
       try {
+        const foundUser = await this.usersService.getUserByTgId(user.id);
+
+        if (foundUser) {
+          ctx.reply(
+            `Assalomu alaykum, ${foundUser.first_name || foundUser.title}!`,
+          );
+          this.mainMenu(ctx);
+          return;
+        }
         const createdUser = await this.usersService.createUser(user);
 
         ctx.reply(
@@ -111,6 +112,7 @@ export class BotService {
       Markup.keyboard([
         ["📍 Hududni o'zgartirish", '📆 Taqvim rasmini olish'],
         ['🔔 Yoqish', "🔕 O'chirish"],
+        ['📆 Bugungi taqvim'],
         ['✉️ Taklif va murojaatlar uchun'],
       ]).resize(),
     );
@@ -121,7 +123,7 @@ export class BotService {
         const data = await this.usersService.turnOnSchedule(ctx.chat);
         if (data) {
           ctx.reply(
-            "🔔 Bildirishnoma muvaffaqqiyatli yoqildi. Endi sizga har kunlik saharlik va iftorlik vaqtlari eslatib boriladi. Eslatib o'tamiz taqvim vaqtlari siz tanlagan hudud asosida yuborialdi.",
+            "🔔 Bildirishnoma muvaffaqqiyatli yoqildi. Endi sizga har kunlik saharlik va iftorlik vaqtlari eslatib boriladi. Eslatib o'tamiz taqvim vaqtlari siz tanlagan hudud asosida yuboriladi.",
           );
         }
       } catch (error) {
@@ -335,5 +337,38 @@ ${duas.iftar}`,
         }
       });
     }, 35 * 1000);
+  }
+  async todayTimes() {
+    this.bot.hears('📆 Bugungi taqvim', async (ctx) => {
+      const findUser = await this.usersService.getUserByTgId(ctx.chat.id);
+      if (!findUser) {
+        ctx.reply('Avval botga /start bering!');
+      }
+
+      if (!findUser?.region) {
+        ctx.reply(
+          "Avval hudud tanlang so'ngra sizga bugunlik taqvim jo'natiladi.",
+        );
+        Markup.keyboard(['📍 Hudud tanlash']).resize();
+      }
+
+      const times = await this.calendarService.getCalendarByRegion(
+        findUser?.region as string,
+      );
+      if (!times) {
+        ctx.reply(
+          'Bugungi kun taqvimi topilmadi. Ehtimol bugun ramazon kunlaridan biri emas.',
+        );
+        return
+      }
+
+      ctx.reply(`🌙 *Ramazonning ${times?.day}-kuni* uchun ro‘za jadvali (${findUser?.region} hududi bo‘yicha):  
+
+🔹 *Saharlik vaqti* (og‘iz yopish): *${times?.suhoor}*  
+🔹 *Iftorlik vaqti* (og‘iz ochish): *${times?.iftar}*  
+
+📅 *Bugungi sana:* ${times?.date}  
+🕌 Ro‘zangiz qabul bo‘lsin! 🤲`);
+    });
   }
 }
