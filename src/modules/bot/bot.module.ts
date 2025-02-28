@@ -8,7 +8,6 @@ import { RegionsModule } from '../regions/regions.module';
 import { RegionsService } from '../regions/regions.service';
 import { CalendarModule } from '../calendar/calendar.module';
 import { CalendarService } from '../calendar/calendar.service';
-import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [UsersModule, ConfigModule, RegionsModule, CalendarModule],

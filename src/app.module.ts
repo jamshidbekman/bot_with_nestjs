@@ -37,6 +37,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     CalendarModule,
   ],
   controllers: [],
-  providers: [BotService],
+  providers: [],
 })
 export class AppModule {}

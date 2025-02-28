@@ -1,13 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationBootstrap,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Markup, Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { RegionsService } from '../regions/regions.service';
 import { CalendarService } from '../calendar/calendar.service';
 import * as moment from 'moment-timezone';
+import { schedule } from 'node-cron';
 
 @Injectable()
-export class BotService {
+export class BotService implements OnModuleInit {
   bot: Telegraf;
   constructor(
     private readonly configService: ConfigService,
@@ -21,16 +26,25 @@ export class BotService {
   }
 
   async onModuleInit() {
-    await this.setupBot();
-    await this.allHears();
-    await this.notification();
-    await this.updateRegion();
-    this.proposal();
-    this.commands();
-    this.sendPhoto();
-    await this.sendNotification();
-    await this.todayTimes();
-    await this.bot.launch({ dropPendingUpdates: true });
+    try {
+      await this.setupBot();
+      await this.allHears();
+      await this.notification();
+      await this.updateRegion();
+      this.proposal();
+      this.commands();
+      this.sendPhoto();
+      schedule('*/10 * * * * *', async () => {
+        await this.sendNotification();
+      });
+      await this.todayTimes();
+      await this.bot.telegram.deleteWebhook();
+      process.nextTick(async () => {
+        await this.bot.launch({ dropPendingUpdates: true });
+      });
+    } catch (error) {
+      console.log(error.message);
+    }
   }
   async setupBot() {
     this.bot.start(async (ctx) => {
@@ -250,7 +264,11 @@ export class BotService {
     });
   }
   sendMessage(id: any, msg: any) {
-    this.bot.telegram.sendMessage(id, msg);
+    try {
+      this.bot.telegram.sendMessage(id, msg);
+    } catch (error) {
+      console.log(error.message);
+    }
   }
   async sendNotification() {
     const duas = {
@@ -265,78 +283,76 @@ Fag‘fir-lii yag‘o’ffaar(u) Maa qoddmtu
 Va maa axxortu. Birohmatika yaa arhamar roohimiyn.`,
     };
 
-    setInterval(async () => {
-      const users = await this.usersService.getAllActiveUsers();
-      if (!users) return;
+    const users = await this.usersService.getAllActiveUsers();
+    if (!users) return;
 
-      const now = moment().tz('Asia/Tashkent').format('HH:mm');
+    const now = moment().tz('Asia/Tashkent').format('HH:mm');
 
-      users.forEach(async (user) => {
-        const todayTimes = await this.calendarService.getCalendarByRegion(
-          user.region,
-        );
-        if (!todayTimes) return;
+    users.forEach(async (user) => {
+      const todayTimes = await this.calendarService.getCalendarByRegion(
+        user.region,
+      );
+      if (!todayTimes) return;
 
-        if (now === '01:00') {
-          this.sendMessage(
-            user.id,
-            `🌙 *Ramazonning ${todayTimes.day}-kuni* uchun ro‘za jadvali (${user.region} hududi bo‘yicha):  
+      if (now === '01:00') {
+        this.sendMessage(
+          user.id,
+          `🌙 *Ramazonning ${todayTimes.day}-kuni* uchun ro‘za jadvali (${user.region} hududi bo‘yicha):  
 
 🔹 *Saharlik vaqti* (og‘iz yopish): *${todayTimes.suhoor}*  
 🔹 *Iftorlik vaqti* (og‘iz ochish): *${todayTimes.iftar}*  
 
 📅 *Bugungi sana:* ${todayTimes.date}  
 🕌 Ro‘zangiz qabul bo‘lsin! 🤲`,
-          );
-        }
+        );
+      }
 
-        const { suhoor, iftar } = todayTimes;
-        const suhoorReminder = moment(suhoor, 'HH:mm')
-          .subtract(10, 'minutes')
-          .format('HH:mm');
-        const iftarReminder = moment(iftar, 'HH:mm')
-          .subtract(10, 'minutes')
-          .format('HH:mm');
-        const suhoorTime = moment(suhoor, 'HH:mm')
-          .subtract(1, 'minutes')
-          .format('HH:mm');
-        const iftarTime = moment(iftar, 'HH:mm').format('HH:mm');
+      const { suhoor, iftar } = todayTimes;
+      const suhoorReminder = moment(suhoor, 'HH:mm')
+        .subtract(10, 'minutes')
+        .format('HH:mm');
+      const iftarReminder = moment(iftar, 'HH:mm')
+        .subtract(10, 'minutes')
+        .format('HH:mm');
+      const suhoorTime = moment(suhoor, 'HH:mm')
+        .subtract(1, 'minutes')
+        .format('HH:mm');
+      const iftarTime = moment(iftar, 'HH:mm').format('HH:mm');
 
-        if (suhoorReminder === now) {
-          this.sendMessage(
-            user.id,
-            `⏳ *Eslatma:* (${user.region} hududi bo‘yicha) Saharlik vaqti tugashiga *10 daqiqa* qoldi.  
+      if (suhoorReminder === now) {
+        this.sendMessage(
+          user.id,
+          `⏳ *Eslatma:* (${user.region} hududi bo‘yicha) Saharlik vaqti tugashiga *10 daqiqa* qoldi.  
 Shoshiling, duolaringizni qabul qiling va niyat qiling! 🤲`,
-          );
-        } else if (suhoorTime === now) {
-          this.sendMessage(
-            user.id,
-            `🌅 *Saharlik vaqti tugadi!* (${user.region} hududi bo‘yicha)  
+        );
+      } else if (suhoorTime === now) {
+        this.sendMessage(
+          user.id,
+          `🌅 *Saharlik vaqti tugadi!* (${user.region} hududi bo‘yicha)  
 Alloh ro‘zangizni qabul qilsin! 🤲  
 
 📜 *Saharlik duosi:*  
 ${duas.suhoor}`,
-          );
-        }
+        );
+      }
 
-        if (iftarReminder === now) {
-          this.sendMessage(
-            user.id,
-            `⏳ *Eslatma:* (${user.region} hududi bo‘yicha) Iftorlik vaqtiga *10 daqiqa* qoldi.  
+      if (iftarReminder === now) {
+        this.sendMessage(
+          user.id,
+          `⏳ *Eslatma:* (${user.region} hududi bo‘yicha) Iftorlik vaqtiga *10 daqiqa* qoldi.  
 Alloh ro‘zangizni qabul qilsin! 🌙🤲`,
-          );
-        } else if (iftarTime === now) {
-          this.sendMessage(
-            user.id,
-            `🌇 *Iftorlik vaqti boshlandi!* (${user.region} hududi bo‘yicha)  
+        );
+      } else if (iftarTime === now) {
+        this.sendMessage(
+          user.id,
+          `🌇 *Iftorlik vaqti boshlandi!* (${user.region} hududi bo‘yicha)  
 Ro‘zangiz muborak bo‘lsin!  
 
 📜 *Iftorlik duosi:*  
 ${duas.iftar}`,
-          );
-        }
-      });
-    }, 35 * 1000);
+        );
+      }
+    });
   }
   async todayTimes() {
     this.bot.hears('📆 Bugungi taqvim', async (ctx) => {
@@ -359,7 +375,7 @@ ${duas.iftar}`,
         ctx.reply(
           'Bugungi kun taqvimi topilmadi. Ehtimol bugun ramazon kunlaridan biri emas.',
         );
-        return
+        return;
       }
 
       ctx.reply(`🌙 *Ramazonning ${times?.day}-kuni* uchun ro‘za jadvali (${findUser?.region} hududi bo‘yicha):  
