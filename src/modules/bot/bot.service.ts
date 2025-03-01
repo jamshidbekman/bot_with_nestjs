@@ -275,14 +275,13 @@ export class BotService implements OnModuleInit {
   async sendNotification() {
     const duas = {
       suhoor: `
-Nawaytu an asuuma Sowma shahri ramadoon(a)
-Minal fajri ilal mag‘rib(i) Xoolisan lillahi 
-ta’aala Allohu Akbar.`,
+Navaytu an asuma sovma shahri ramazona minal 
+fajri ilal mag‘ribi, xolisan lillahi ta‘ala. 
+Allohu akbar.`,
       iftar: `
-Allohumma laka sumtu Va bika aamantu
-Va ‘alayka tavakkaltu Va alaa rizqika aftortu
-Fag‘fir-lii yag‘o’ffaar(u) Maa qoddmtu
-Va maa axxortu. Birohmatika yaa arhamar roohimiyn.`,
+Allohumma laka sumtu va bika amantu va ‘alayka 
+tavakkaltu va ‘ala rizqika aftortu, fag‘firli ya 
+G‘offaru ma qoddamtu va ma axxortu.`,
     };
 
     const users = await this.usersService.getAllActiveUsers();
@@ -304,8 +303,7 @@ Va maa axxortu. Birohmatika yaa arhamar roohimiyn.`,
 🔹 *Saharlik vaqti* (og‘iz yopish): *${todayTimes.suhoor}*  
 🔹 *Iftorlik vaqti* (og‘iz ochish): *${todayTimes.iftar}*  
 
-📅 *Bugungi sana:* ${todayTimes.date}  
-🕌 Ro‘zangiz qabul bo‘lsin! 🤲`,
+📅 *Bugungi sana:* ${todayTimes.date}`,
         );
       }
 
@@ -325,13 +323,12 @@ Va maa axxortu. Birohmatika yaa arhamar roohimiyn.`,
         this.sendMessage(
           user.id,
           `⏳ *Eslatma:* (${user.region} hududi bo‘yicha) Saharlik vaqti tugashiga *10 daqiqa* qoldi.  
-Shoshiling, duolaringizni qabul qiling va niyat qiling! 🤲`,
+Shoshiling!`,
         );
       } else if (suhoorTime === now) {
         this.sendMessage(
           user.id,
           `🌅 *Saharlik vaqti tugadi!* (${user.region} hududi bo‘yicha)  
-Alloh ro‘zangizni qabul qilsin! 🤲  
 
 📜 *Saharlik duosi:*  
 ${duas.suhoor}`,
@@ -348,6 +345,7 @@ Alloh ro‘zangizni qabul qilsin! 🌙🤲`,
         this.sendMessage(
           user.id,
           `🌇 *Iftorlik vaqti boshlandi!* (${user.region} hududi bo‘yicha)  
+          
 Ro‘zangiz muborak bo‘lsin!  
 
 📜 *Iftorlik duosi:*  

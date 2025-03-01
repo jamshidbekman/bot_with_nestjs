@@ -26,7 +26,7 @@ export class User {
   @Prop()
   all_members_are_administrators?: boolean;
 
-  @Prop({ default: false })
+  @Prop({ default: true })
   schedule: boolean;
 
   @Prop({ default: null })
