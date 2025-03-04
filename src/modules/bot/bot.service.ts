@@ -39,6 +39,8 @@ export class BotService implements OnModuleInit {
         await this.sendNotification();
       });
       await this.todayTimes();
+      await this.tomorrowTimes();
+      await this.adminCommands();
       await this.bot.telegram.deleteWebhook();
       process.nextTick(async () => {
         await this.bot.launch({ dropPendingUpdates: true });
@@ -128,7 +130,7 @@ export class BotService implements OnModuleInit {
       Markup.keyboard([
         ["📍 Hududni o'zgartirish", '📆 Taqvim rasmini olish'],
         ['🔔 Yoqish', "🔕 O'chirish"],
-        ['📆 Bugungi taqvim'],
+        ['📆 Bugungi taqvim', '📆 Ertagalik taqvim'],
         ['✉️ Taklif va murojaatlar uchun'],
       ]).resize(),
     );
@@ -385,6 +387,74 @@ ${duas.iftar}`,
 
 📅 *Bugungi sana:* ${times?.date}  
 🕌 Ro‘zangiz qabul bo‘lsin! 🤲`);
+    });
+  }
+  async tomorrowTimes() {
+    this.bot.hears('📆 Ertagalik taqvim', async (ctx) => {
+      const findUser = await this.usersService.getUserByTgId(ctx.chat.id);
+      if (!findUser) {
+        ctx.reply('Avval botga /start bering!');
+      }
+
+      if (!findUser?.region) {
+        ctx.reply(
+          "Avval hudud tanlang so'ngra sizga bugunlik taqvim jo'natiladi.",
+        );
+        Markup.keyboard(['📍 Hudud tanlash']).resize();
+      }
+      const times = await this.calendarService.getTomorrowCalendarByRegion(
+        findUser?.region as string,
+      );
+      if (!times) {
+        ctx.reply(
+          'Bugungi kun taqvimi topilmadi. Ehtimol bugun ramazon kunlaridan biri emas.',
+        );
+        return;
+      }
+
+      ctx.reply(`🌙 *Ramazonning ${times?.day}-kuni* uchun ro‘za jadvali (${findUser?.region} hududi bo‘yicha):  
+
+🔹 *Saharlik vaqti* (og‘iz yopish): *${times?.suhoor}*  
+🔹 *Iftorlik vaqti* (og‘iz ochish): *${times?.iftar}*  
+
+📅 *Sana:* ${times?.date}  
+🕌 Ro‘zangiz qabul bo‘lsin! 🤲`);
+    });
+  }
+  async sendMessageAllMembers(message: string) {
+    const users = await this.usersService.getAllUsers();
+    if (!users) return;
+    users.forEach(async (user) => {
+      try {
+        await this.sendMessage(user.id, message);
+      } catch (error) {
+        console.log(error.message);
+      }
+    });
+  }
+  async adminCommands() {
+    this.bot.command('sendmessage', async (ctx) => {
+      if (ctx.chat.id !== Number(this.configService.get<number>('ADMIN_ID')))
+        return;
+
+      const message = ctx.message.text.replace('/sendmessage', '').trim();
+
+      if (!message) {
+        return ctx.reply('Xabar matnini kiriting: /sendall XABAR');
+      }
+      await this.sendMessageAllMembers(message);
+      ctx.reply('Xabar barcha foydalanuvchilarga jo‘natildi!');
+    });
+    this.bot.command('users', async (ctx) => {
+      if (ctx.chat.id !== Number(this.configService.get<number>('ADMIN_ID')))
+        return;
+      const activeUsers = await this.usersService.getAllActiveUsers();
+      const allUsers = await this.usersService.getAllUsers();
+      if (!activeUsers && !allUsers) return;
+      await ctx.reply(
+        `Bildirishnoma olayotgan foydalanuvchilar: ${activeUsers.length}`,
+      );
+      await ctx.reply(`Barcha foydalanuvchilar: ${allUsers.length}`);
     });
   }
 }

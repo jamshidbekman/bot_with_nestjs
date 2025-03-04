@@ -9,6 +9,7 @@ import {
   CapitalCalendar,
   CapitalCalendarDocument,
 } from './models/capitalCalendar';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class CalendarService {
@@ -17,6 +18,7 @@ export class CalendarService {
     private readonly calendarModel: Model<CalendarDocument>,
     @InjectModel(CapitalCalendar.name)
     private readonly capitalCalendarModel: Model<CapitalCalendarDocument>,
+    private readonly usersService: UsersService,
   ) {}
 
   async getCalendarByRegion(region: string) {
@@ -34,6 +36,25 @@ export class CalendarService {
       region: region,
     });
 
+    return calendar;
+  }
+  async getTomorrowCalendarByRegion(region: string) {
+    const today = moment()
+      .tz('Asia/Tashkent')
+      .add(1, 'days')
+      .format('YYYY-MM-DD');
+    if (region === 'Toshkent shahri') {
+      const calendar = await this.capitalCalendarModel.findOne({
+        date: today,
+        region: region,
+      });
+
+      return calendar;
+    }
+    const calendar = await this.calendarModel.findOne({
+      date: today,
+      region: region,
+    });
     return calendar;
   }
 }

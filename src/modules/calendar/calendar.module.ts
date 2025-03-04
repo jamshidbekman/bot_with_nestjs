@@ -7,6 +7,9 @@ import {
   CapitalCalendar,
   CapitalCalendarSchema,
 } from './models/capitalCalendar';
+import { User, UserSchema } from '../users/models/user.model';
+import { UsersModule } from '../users/users.module';
+import { UsersService } from '../users/users.service';
 
 @Module({
   imports: [
@@ -20,9 +23,10 @@ import {
         schema: CapitalCalendarSchema,
       },
     ]),
+    UsersModule,
   ],
   controllers: [CalendarController],
-  providers: [CalendarService],
+  providers: [CalendarService, UsersService],
   exports: [CalendarService, MongooseModule],
 })
 export class CalendarModule {}

@@ -51,4 +51,8 @@ export class UsersService {
     const users = await this.usersModel.find({ schedule: true });
     return users;
   }
+  async getAllUsers() {
+    const users = await this.usersModel.find();
+    return users;
+  }
 }
